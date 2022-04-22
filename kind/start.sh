@@ -17,5 +17,5 @@ echo "Testing registry"
 docker pull nginx:latest
 docker tag nginx:latest localhost:5000/nginx:latest
 docker push localhost:5000/nginx:latest
-echo "All done! Now set the kubeconfig:"
+printf "All done! Now set the kubeconfig:\n"
 echo "export KUBECONFIG=$PWD/kind.kubeconfig"
