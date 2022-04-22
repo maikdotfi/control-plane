@@ -1,2 +1,3 @@
 # Cloud credential files
 creds.conf
+*.kubeconfig
