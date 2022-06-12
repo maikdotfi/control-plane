@@ -48,3 +48,5 @@ waypoint install --platform=kubernetes -accept-tos
 ```
 
 ## Example app
+
+`nodejs` folder has an example app which can be brought up with `waypoint up`, however I couldn't log into the UI (auth fails for some reason) and also helm example doesn't work. Probably will wait another year or so before coming back to Waypoint, it's a big no-no that even tutorials don't work.
