@@ -1,0 +1,43 @@
+#!/bin/sh
+sudo curl https://deb.releases.teleport.dev/teleport-pubkey.asc \
+  -o /usr/share/keyrings/teleport-archive-keyring.asc
+echo "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] https://deb.releases.teleport.dev/ stable main" \
+| sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
+sudo apt-get update
+sudo apt-get install teleport
+
+echo "Creating teleport config"
+echo "version: v2
+teleport:
+  nodename: ${node_name}
+  data_dir: /var/lib/teleport
+  log:
+    output: stderr
+    severity: INFO
+    format:
+      output: text
+  ca_pin: []
+  diag_addr: \"\"
+  auth_token: ${join_token}
+  auth_servers:
+    - ${auth_server}
+auth_service:
+  enabled: \"no\"
+ssh_service:
+  enabled: \"yes\"
+  labels:
+    env: ${environment}
+    project: ${project}
+  commands:
+  - name: hostname
+    command: [hostname]
+    period: 1m0s
+proxy_service:
+  enabled: \"no\"
+  https_keypairs: []
+  acme: {}
+  " > /etc/teleport.yaml
+
+sudo systemctl enable teleport
+sudo systemctl start teleport
+

@@ -1,0 +1,58 @@
+#!/bin/sh
+sudo curl https://deb.releases.teleport.dev/teleport-pubkey.asc \
+  -o /usr/share/keyrings/teleport-archive-keyring.asc
+echo "deb [signed-by=/usr/share/keyrings/teleport-archive-keyring.asc] https://deb.releases.teleport.dev/ stable main" \
+| sudo tee /etc/apt/sources.list.d/teleport.list > /dev/null
+sudo apt-get update
+sudo apt-get install teleport
+export PUBLIC_IP=$(wget -O- -q http://169.254.169.254/metadata/v1/network/interfaces/1/ip_addresses/1/address)
+echo $PUBLIC_IP
+export DNS_NAME=$(dig +noall +answer -x ${PUBLIC_IP}  | awk '{print $5}' | sed 's/.$//')
+echo $DNS_NAME
+
+echo "Creating teleport config"
+echo "version: v2
+teleport:
+  nodename: seaweed-env-my-server
+  data_dir: /var/lib/teleport
+  log:
+    output: stderr
+    severity: INFO
+    format:
+      output: text
+  ca_pin: []
+  diag_addr: \"\"
+auth_service:
+  enabled: \"yes\"
+  listen_addr: 0.0.0.0:3025
+  cluster_name: ${DNS_NAME}
+  proxy_listener_mode: multiplex
+  authentication:
+    second_factor: optional
+    webauthn:
+      rp_id: ${DNS_NAME}
+      disabled: false
+ssh_service:
+  enabled: \"yes\"
+  labels:
+    env: example
+  commands:
+  - name: hostname
+    command: [hostname]
+    period: 1m0s
+proxy_service:
+  enabled: \"yes\"
+  web_listen_addr: 0.0.0.0:443
+  public_addr: ${DNS_NAME}:443
+  https_keypairs: []
+  acme:
+    enabled: \"yes\"
+  " > /etc/teleport.yaml
+
+sudo systemctl enable teleport
+sudo systemctl start teleport
+
+sleep 10 #give teleport time to initialize and ACME to kick in
+until sudo tctl users add teleport-admin --roles=editor,access --logins=root,ubuntu,ec2-user 1>/root/teleport-admin 2>/dev/null; do
+echo "creating admin..." && sleep 1
+done
